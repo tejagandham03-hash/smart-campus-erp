@@ -1,0 +1,13 @@
+import React, { useEffect, useState } from 'react';
+import API from '../../services/api';
+import StudentNavbar from '../../components/common/StudentNavbar';
+
+export default function Queries() {
+  const [queries, setQueries] = useState([]);
+  const [form, setForm] = useState({ subject: '', message: '' });
+  const [message, setMessage] = useState('');
+  const load = () => API.get('/queries').then((response) => setQueries(response.data?.data || []));
+  useEffect(() => { load().catch(() => setMessage('Unable to load queries.')); }, []);
+  const submit = async (event) => { event.preventDefault(); try { await API.post('/queries', form); setForm({ subject: '', message: '' }); setMessage('Query submitted.'); await load(); } catch (error) { setMessage(error.response?.data?.message || 'Unable to submit query.'); } };
+  return <div className="min-h-screen bg-slate-50 dark:bg-slate-950"><StudentNavbar /><main className="mx-auto max-w-4xl space-y-6 p-4 sm:p-8"><header><h1 className="text-3xl font-black">Queries</h1><p className="mt-1 text-sm text-slate-500">Submit a query to your assigned faculty.</p></header><form onSubmit={submit} className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"><input required placeholder="Subject" value={form.subject} onChange={(event) => setForm({ ...form, subject: event.target.value })} className="w-full rounded-lg border border-slate-300 bg-transparent p-2.5 dark:border-slate-700" /><textarea required placeholder="Describe your query" value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} className="min-h-28 w-full rounded-lg border border-slate-300 bg-transparent p-2.5 dark:border-slate-700" /><button className="rounded-lg bg-indigo-700 px-4 py-2 text-sm font-bold text-white">Submit query</button>{message && <p className="text-sm text-slate-600 dark:text-slate-300">{message}</p>}</form><section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"><h2 className="font-bold">Your submitted queries</h2>{queries.map((query) => <article key={query._id} className="mt-4 border-t border-slate-100 pt-4 text-sm dark:border-slate-800"><p className="font-semibold">{query.subject} <span className="ml-2 text-xs uppercase text-indigo-600">{query.status}</span></p><p className="mt-1 text-slate-600 dark:text-slate-300">{query.message}</p>{query.response && <p className="mt-2 rounded bg-slate-50 p-2 text-slate-600 dark:bg-slate-950 dark:text-slate-300">Response: {query.response}</p>}</article>)}</section></main></div>;
+}

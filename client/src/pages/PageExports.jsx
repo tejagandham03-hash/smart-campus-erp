@@ -1,0 +1,23 @@
+export { default as StudentProfile } from './student/Profile';
+export { default as StudentAttendance } from './student/Attendance';
+export { default as StudentTimetable } from './student/Timetable';
+export { default as StudentExaminations } from './student/Examinations';
+export { default as StudentResults } from './student/Results';
+export { default as StudentFees } from './student/Fees';
+export { default as StudentNotifications } from './student/Notifications';
+export { default as StudentPlacements } from './student/Placements';
+export { default as StudentAIAssistant } from './student/AIAssistant';
+export { default as FacultyDashboard } from './faculty/Dashboard';
+export { default as FacultyAttendance } from './faculty/Attendance';
+export { default as FacultyExaminations } from './faculty/Examinations';
+export { default as AdminDashboard } from './admin/Dashboard';
+export { default as AdminStudents } from './admin/Students';
+export { default as AdminFaculty } from './admin/Faculty';
+export { default as AdminDepartments } from './admin/Departments';
+export { default as AdminCourses } from './admin/Courses';
+export { default as AdminSubjects } from './admin/Subjects';
+export { default as AdminTimetable } from './admin/Timetable';
+export { default as AdminNotifications } from './admin/Notifications';
+export { default as AdminPlacements } from './admin/Placements';
+export { default as AdminFees } from './admin/Fees';
+
