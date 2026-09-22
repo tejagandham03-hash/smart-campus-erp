@@ -11,6 +11,7 @@ import NotificationCenter from './components/common/NotificationCenter';
 // Pages
 import LandingPage from './pages/public/LandingPage';
 import LoginPage from './pages/auth/LoginPage';
+import AdminResetPasswordPage from './pages/auth/AdminResetPasswordPage';
 import StudentDashboard from './pages/student/Dashboard';
 import StudentProfile from './pages/student/Profile';
 import StudentAttendance from './pages/student/Attendance';
@@ -38,7 +39,9 @@ import AdminTimetable from './pages/admin/Timetable';
 import AdminNotifications from './pages/admin/Notifications';
 import AdminPlacements from './pages/admin/Placements';
 import AdminFees from './pages/admin/Fees';
+import AdminProfile from './pages/admin/Profile';
 import NotFoundPage from './pages/public/NotFoundPage';
+import AdminForgotPasswordPage from './pages/auth/AdminForgotPasswordPage';
 
 const AppRoutes = () => {
   const { user, isAuthLoading, token } = useAuth();
@@ -60,6 +63,8 @@ const AppRoutes = () => {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={token ? <Navigate to="/dashboard" /> : <LoginPage />} />
         <Route path="/admin/login" element={token ? <Navigate to="/admin" replace /> : <LoginPage restrictedRole="admin" />} />
+        <Route path="/admin/forgot-password" element={<AdminForgotPasswordPage />} />
+        <Route path="/admin/reset-password" element={<AdminResetPasswordPage />} />
         <Route path="/register" element={<Navigate to="/login" replace />} />
 
         {/* Dashboard redirect */}
@@ -258,6 +263,16 @@ const AppRoutes = () => {
             <ProtectedRoute>
               <RoleGuard requiredRole="admin">
                 <AdminStudents />
+              </RoleGuard>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/profile"
+          element={
+            <ProtectedRoute>
+              <RoleGuard requiredRole="admin">
+                <AdminProfile />
               </RoleGuard>
             </ProtectedRoute>
           }

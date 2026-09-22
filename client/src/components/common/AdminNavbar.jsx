@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Settings,
   School,
   Users,
   WalletCards,
@@ -54,6 +55,9 @@ export default function AdminNavbar() {
           <button onClick={signOut} className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-400 dark:hover:bg-rose-950/30">
             <LogOut className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Sign Out</span>
           </button>
+          <Link to="/admin/profile" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title="Admin account settings">
+            <Settings className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Account</span>
+          </Link>
           <button onClick={() => setMobileOpen(!mobileOpen)} className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 md:hidden" aria-label="Toggle admin navigation">
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>

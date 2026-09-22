@@ -154,20 +154,36 @@ exports.createFaculty = async (req, res, next) => {
 
 exports.updateFaculty = async (req, res, next) => {
   try {
-    const faculty = await Faculty.findByIdAndUpdate(req.params.id, req.body, {
+    const { name, email, password, phone, ...facultyData } = req.body;
+    const existingFaculty = await Faculty.findById(req.params.id);
+    if (!existingFaculty) {
+      return res.status(404).json({
+        success: false,
+        message: 'Faculty not found',
+      });
+    }
+
+    const userData = {};
+    if (name !== undefined) userData.name = String(name).trim();
+    if (email !== undefined) userData.email = String(email).trim().toLowerCase();
+    if (phone !== undefined) userData.phone = phone;
+    if (facultyData.department !== undefined) userData.department = facultyData.department;
+    if (password) userData.password = password;
+    if (Object.keys(userData).length > 0) {
+      const user = await User.findById(existingFaculty.userId);
+      if (user) {
+        Object.assign(user, userData);
+        await user.save();
+      }
+    }
+
+    const faculty = await Faculty.findByIdAndUpdate(req.params.id, facultyData, {
       new: true,
       runValidators: true,
     })
       .populate('userId')
       .populate('department')
       .populate('subjects');
-
-    if (!faculty) {
-      return res.status(404).json({
-        success: false,
-        message: 'Faculty not found',
-      });
-    }
 
     res.status(200).json({
       success: true,

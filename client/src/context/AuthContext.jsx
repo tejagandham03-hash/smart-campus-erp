@@ -68,6 +68,38 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const requestPasswordReset = async (identifier, role = 'admin') => {
+    try {
+      const response = await API.post('/auth/forgot-password', { identifier, role });
+      return {
+        success: response.data.success,
+        message: response.data.message || 'Password reset request sent.',
+        data: response.data.data || null,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Unable to process password reset request',
+        data: null,
+      };
+    }
+  };
+
+  const resetPassword = async (token, password) => {
+    try {
+      const response = await API.post('/auth/reset-password', { token, password });
+      return {
+        success: response.data.success,
+        message: response.data.message || 'Password reset successful.',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Password reset failed.',
+      };
+    }
+  };
+
   const register = async (formData) => {
     try {
       const response = await API.post('/auth/register', formData);
@@ -95,7 +127,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isAuthLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, isAuthLoading, login, register, logout, requestPasswordReset, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );

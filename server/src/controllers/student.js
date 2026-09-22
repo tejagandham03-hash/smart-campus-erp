@@ -213,16 +213,22 @@ exports.updateStudent = async (req, res, next) => {
 
     const updateData = { ...req.body };
     if (req.user.role === ROLES.FACULTY) delete updateData.assignedFaculty;
-    const { name, email, phone } = updateData;
+    const { name, email, phone, password } = updateData;
     delete updateData.name;
     delete updateData.email;
     delete updateData.phone;
-    if (name || email || phone) {
+    delete updateData.password;
+    if (name || email || phone || password) {
       const userUpdate = {};
       if (name) userUpdate.name = String(name).trim();
       if (email) userUpdate.email = String(email).trim().toLowerCase();
       if (phone) userUpdate.phone = phone;
-      await User.findByIdAndUpdate(existingStudent.userId, userUpdate, { runValidators: true });
+      if (password) userUpdate.password = password;
+      const user = await User.findById(existingStudent.userId);
+      if (user) {
+        Object.assign(user, userUpdate);
+        await user.save();
+      }
     }
     const student = await Student.findByIdAndUpdate(req.params.id, updateData, {
       new: true,

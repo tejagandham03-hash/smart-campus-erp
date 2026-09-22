@@ -10,10 +10,17 @@ export default function AdminBulkImport({ type }) {
 
   const downloadTemplate = () => {
     try {
-      const headers = type === 'faculty'
-        ? ['Name', 'Email', 'Password', 'Phone', 'Employee ID', 'Department Code', 'Designation', 'Qualification', 'Joining Date']
-        : ['Name', 'Email', 'Password', 'Phone', 'Student ID', 'Department Code', 'Course Code', 'Semester', 'Section', 'Assigned Faculty IDs'];
-      const worksheet = XLSX.utils.aoa_to_sheet([headers]);
+      const rows = type === 'faculty'
+        ? [
+          ['Name', 'Email', 'Password', 'Phone', 'Employee ID', 'Department Code', 'Designation', 'Qualification', 'Joining Date'],
+          ['REPLACE WITH FACULTY NAME', 'replace-faculty@example.com', 'REPLACE_WITH_PASSWORD', '', 'REPLACE_WITH_EMPLOYEE_ID', 'REPLACE_WITH_DEPARTMENT_CODE', 'REPLACE WITH DESIGNATION', 'REPLACE WITH QUALIFICATION', '2026-01-01'],
+        ]
+        : [
+          ['Name', 'Email', 'Password', 'Phone', 'Student ID', 'Department Code', 'Course Code', 'Semester', 'Section', 'Assigned Faculty IDs'],
+          ['REPLACE WITH STUDENT NAME', 'replace-student@example.com', 'REPLACE_WITH_PASSWORD', '', 'REPLACE_WITH_STUDENT_ID', 'REPLACE_WITH_DEPARTMENT_CODE', 'REPLACE_WITH_COURSE_CODE', 1, 'A', ''],
+        ];
+      const worksheet = XLSX.utils.aoa_to_sheet(rows);
+      const headers = rows[0];
       worksheet['!cols'] = headers.map(() => ({ wch: 22 }));
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, type === 'faculty' ? 'Faculty' : 'Students');

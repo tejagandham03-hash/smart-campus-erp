@@ -55,6 +55,16 @@ const userSchema = new mongoose.Schema(
     profilePhoto: {
       type: String,
     },
+    resetToken: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    resetTokenExpires: {
+      type: Date,
+      default: null,
+      select: false,
+    },
   },
   { timestamps: true }
 );

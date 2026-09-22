@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const User = require('../models/User');
 const Student = require('../models/Student');
 const Faculty = require('../models/Faculty');
@@ -196,6 +197,88 @@ exports.login = async (req, res, next) => {
           additionalData,
         },
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.forgotPassword = async (req, res, next) => {
+  try {
+    const { identifier, role } = req.body;
+    const normalizedIdentifier = String(identifier || '').trim().toLowerCase();
+
+    if (!normalizedIdentifier || !role) {
+      return res.status(422).json({
+        success: false,
+        message: 'Please provide your admin username or email',
+      });
+    }
+
+    if (!Object.values(ROLES).includes(role)) {
+      return res.status(422).json({ success: false, message: 'Select a valid account role' });
+    }
+
+    const user = await User.findOne({
+      role,
+      $or: [{ email: normalizedIdentifier }, { username: normalizedIdentifier }],
+    });
+
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        message: 'If that account exists, a password reset link has been prepared. Please use the reset page to continue.',
+      });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpires = new Date(Date.now() + 30 * 60 * 1000);
+
+    user.resetToken = resetToken;
+    user.resetTokenExpires = resetTokenExpires;
+    await user.save();
+
+    const resetUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/admin/reset-password?token=${resetToken}`;
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password reset instructions are ready. Use the reset page to create a new password.',
+      data: { resetUrl },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.resetPassword = async (req, res, next) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token) {
+      return res.status(422).json({ success: false, message: 'Reset token is missing.' });
+    }
+
+    if (!password || String(password).length < 6) {
+      return res.status(422).json({ success: false, message: 'Password must be at least 6 characters.' });
+    }
+
+    const user = await User.findOne({
+      resetToken: token,
+      resetTokenExpires: { $gt: Date.now() },
+    }).select('+password +resetToken +resetTokenExpires');
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'This password reset link is invalid or has expired.' });
+    }
+
+    user.password = password;
+    user.resetToken = undefined;
+    user.resetTokenExpires = undefined;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password reset successful. You can now sign in with the new password.',
     });
   } catch (error) {
     next(error);

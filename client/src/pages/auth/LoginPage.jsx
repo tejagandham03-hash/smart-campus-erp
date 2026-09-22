@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, AlertCircle, GraduationCap, BookOpen } from 'lucide-react';
+import { Mail, Lock, AlertCircle, GraduationCap, BookOpen, X } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotification } from '../../hooks/useNotification';
 
@@ -167,6 +167,18 @@ const LoginPage = ({ restrictedRole = null }) => {
             >
               {isLoading ? 'Signing in...' : 'Sign In'}
             </button>
+
+            {restrictedRole === 'admin' && (
+              <div className="pt-1 text-center">
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/forgot-password')}
+                  className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
           </form>
 
           <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">

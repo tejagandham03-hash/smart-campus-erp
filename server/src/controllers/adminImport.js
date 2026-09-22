@@ -15,6 +15,9 @@ const rowValue = (row, ...keys) => {
   return entry ? text(entry[1]) : '';
 };
 
+const isTemplateExample = (row) => rowValue(row, 'Name', 'Full Name').toUpperCase().startsWith('REPLACE WITH ')
+  || rowValue(row, 'Email').toLowerCase().startsWith('replace-');
+
 const findByCodeOrName = (map, records, value) => {
   const normalizedValue = normalized(value);
   return map.get(String(value).trim().toUpperCase())
@@ -23,11 +26,17 @@ const findByCodeOrName = (map, records, value) => {
 
 exports.downloadTemplate = (req, res) => {
   const type = req.params.type;
-  const headers = type === 'faculty'
-    ? [['Name', 'Email', 'Password', 'Phone', 'Employee ID', 'Department Code', 'Designation', 'Qualification', 'Joining Date']]
-    : [['Name', 'Email', 'Password', 'Phone', 'Student ID', 'Department Code', 'Course Code', 'Semester', 'Section', 'Assigned Faculty IDs']];
-  const worksheet = XLSX.utils.aoa_to_sheet(headers);
-  worksheet['!cols'] = headers[0].map(() => ({ wch: 22 }));
+  const rows = type === 'faculty'
+    ? [
+      ['Name', 'Email', 'Password', 'Phone', 'Employee ID', 'Department Code', 'Designation', 'Qualification', 'Joining Date'],
+      ['REPLACE WITH FACULTY NAME', 'replace-faculty@example.com', 'REPLACE_WITH_PASSWORD', '', 'REPLACE_WITH_EMPLOYEE_ID', 'REPLACE_WITH_DEPARTMENT_CODE', 'REPLACE WITH DESIGNATION', 'REPLACE WITH QUALIFICATION', '2026-01-01'],
+    ]
+    : [
+      ['Name', 'Email', 'Password', 'Phone', 'Student ID', 'Department Code', 'Course Code', 'Semester', 'Section', 'Assigned Faculty IDs'],
+      ['REPLACE WITH STUDENT NAME', 'replace-student@example.com', 'REPLACE_WITH_PASSWORD', '', 'REPLACE_WITH_STUDENT_ID', 'REPLACE_WITH_DEPARTMENT_CODE', 'REPLACE_WITH_COURSE_CODE', 1, 'A', ''],
+    ];
+  const worksheet = XLSX.utils.aoa_to_sheet(rows);
+  worksheet['!cols'] = rows[0].map(() => ({ wch: 22 }));
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, type === 'faculty' ? 'Faculty' : 'Students');
   const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
@@ -41,7 +50,8 @@ exports.bulkImport = async (req, res, next) => {
     const type = req.params.type;
     if (!req.file || !['students', 'faculty'].includes(type)) return res.status(422).json({ success: false, message: 'Choose a valid student or faculty spreadsheet' });
     const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
-    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: '' });
+    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: '' })
+      .filter((row) => !isTemplateExample(row));
     if (!rows.length) return res.status(422).json({ success: false, message: 'The spreadsheet has no data rows' });
     const departments = await Department.find({});
     const departmentByCode = new Map(departments.map((item) => [item.code.toUpperCase(), item]));

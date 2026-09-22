@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { register, login, getMe } = require('../controllers/auth');
+const { register, login, forgotPassword, resetPassword, getMe } = require('../controllers/auth');
 const { protect } = require('../middleware/auth');
 
 router.post('/register', (_req, res) => res.status(403).json({
@@ -8,6 +8,8 @@ router.post('/register', (_req, res) => res.status(403).json({
 	message: 'Public registration is disabled. An administrator must create your account.',
 }));
 router.post('/login', login);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
 router.get('/me', protect, getMe);
 
 module.exports = router;

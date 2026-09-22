@@ -1,6 +1,7 @@
 const Material = require('../models/Material');
 const Faculty = require('../models/Faculty');
 const Student = require('../models/Student');
+const Subject = require('../models/Subject');
 
 exports.getMaterials = async (req, res, next) => {
   try {
@@ -31,6 +32,8 @@ exports.createMaterial = async (req, res, next) => {
     }
     const faculty = await Faculty.findOne({ userId: req.user._id }).select('_id');
     if (!faculty) return res.status(422).json({ success: false, message: 'No faculty profile is linked to this account' });
+    const subjectRecord = await Subject.findOne({ _id: subject, course, semester: Number(semester) }).select('_id');
+    if (!subjectRecord) return res.status(422).json({ success: false, message: 'Select a subject belonging to the chosen course and semester' });
     const material = await Material.create({
       title, description, course, subject, semester: Number(semester), faculty: faculty._id,
       fileUrl: '/api/materials/file/pending', fileName: req.file.originalname,
@@ -46,7 +49,7 @@ exports.createMaterial = async (req, res, next) => {
 
 exports.getMaterialFile = async (req, res, next) => {
   try {
-    const material = await Material.findById(req.params.id).select('+fileData course semester');
+    const material = await Material.findById(req.params.id).select('+fileData');
     if (!material || !material.fileData) return res.status(404).json({ success: false, message: 'Material file not found' });
     if (req.user.role === 'student') {
       const student = await Student.findOne({ userId: req.user._id }).select('course semester');
@@ -55,7 +58,8 @@ exports.getMaterialFile = async (req, res, next) => {
       }
     }
     res.setHeader('Content-Type', material.mimeType || 'application/octet-stream');
-    res.setHeader('Content-Disposition', `inline; filename="${material.fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}"`);
+    const safeFileName = String(material.fileName || 'material').replace(/[^a-zA-Z0-9._-]/g, '_');
+    res.setHeader('Content-Disposition', `inline; filename="${safeFileName}"`);
     res.send(material.fileData);
   } catch (error) { next(error); }
 };
