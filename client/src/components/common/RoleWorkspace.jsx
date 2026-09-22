@@ -56,21 +56,21 @@ const resourceConfig = {
     description: 'Review fee accounts and payment status from the finance records.',
     endpoint: '/fees',
     columns: [['student.studentId', 'Student'], ['feeType', 'Fee type'], ['amount', 'Amount'], ['paidAmount', 'Paid'], ['status', 'Status']],
-    fields: [],
+    fields: [['student', 'Student', 'text'], ['academicYear', 'Academic year', 'text'], ['semester', 'Semester', 'number'], ['feeType', 'Fee type', 'text'], ['amount', 'Amount', 'number'], ['dueDate', 'Due date', 'date'], ['paidAmount', 'Paid amount', 'number']],
   },
   notifications: {
     title: 'Notifications',
     description: 'Review campus messages sent through the notification service.',
     endpoint: '/notifications',
     columns: [['title', 'Title'], ['type', 'Type'], ['priority', 'Priority'], ['createdAt', 'Created']],
-    fields: [],
+    fields: [['title', 'Title', 'text'], ['message', 'Message', 'text'], ['type', 'Type', 'text'], ['targetRole', 'Target role', 'text'], ['department', 'Department ID', 'text']],
   },
   placements: {
     title: 'Placements',
     description: 'Review recruitment drives and their current publication status.',
     endpoint: '/placements',
-    columns: [['company', 'Company'], ['jobTitle', 'Role'], ['location', 'Location'], ['deadline', 'Deadline'], ['status', 'Status']],
-    fields: [],
+    columns: [['companyName', 'Company'], ['jobTitle', 'Role'], ['location', 'Location'], ['deadline', 'Deadline'], ['status', 'Status']],
+    fields: [['companyName', 'Company', 'text'], ['jobTitle', 'Role', 'text'], ['description', 'Description', 'text'], ['location', 'Location', 'text'], ['salary', 'Salary', 'number'], ['eligibility', 'Eligibility', 'text'], ['deadline', 'Deadline', 'date'], ['requirements', 'Requirements', 'text']],
   },
 };
 
@@ -91,6 +91,7 @@ export default function RoleWorkspace({ resource }) {
   const [courses, setCourses] = useState([]);
   const [faculty, setFaculty] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [students, setStudents] = useState([]);
 
   const loadRecords = async () => {
     setLoading(true);
@@ -135,6 +136,13 @@ export default function RoleWorkspace({ resource }) {
     API.get('/subjects?limit=500')
       .then((response) => setSubjects(response.data?.data || []))
       .catch((error) => addNotification(error.response?.data?.message || 'Unable to load subjects.', 'error'));
+  }, [resource]);
+
+  useEffect(() => {
+    if (resource !== 'fees') return;
+    API.get('/students?limit=500')
+      .then((response) => setStudents(response.data?.data || []))
+      .catch((error) => addNotification(error.response?.data?.message || 'Unable to load students.', 'error'));
   }, [resource]);
 
   const preparePayload = () => {
@@ -225,6 +233,35 @@ export default function RoleWorkspace({ resource }) {
         endTime: record.endTime || '',
         room: record.room || '',
       };
+    } else if (resource === 'fees') {
+      nextForm = {
+        student: record.student?._id || record.student || '',
+        academicYear: record.academicYear || '',
+        semester: record.semester || '',
+        feeType: record.feeType || '',
+        amount: record.amount || '',
+        dueDate: record.dueDate ? new Date(record.dueDate).toISOString().split('T')[0] : '',
+        paidAmount: record.paidAmount || 0,
+      };
+    } else if (resource === 'notifications') {
+      nextForm = {
+        title: record.title || '',
+        message: record.message || '',
+        type: record.type || '',
+        targetRole: record.targetRole || '',
+        department: record.department?._id || record.department || '',
+      };
+    } else if (resource === 'placements') {
+      nextForm = {
+        companyName: record.companyName || '',
+        jobTitle: record.jobTitle || '',
+        description: record.description || '',
+        location: record.location || '',
+        salary: record.salary || '',
+        eligibility: record.eligibility || '',
+        deadline: record.deadline ? new Date(record.deadline).toISOString().split('T')[0] : '',
+        requirements: record.requirements || '',
+      };
     }
 
     setForm(nextForm);
@@ -283,7 +320,7 @@ export default function RoleWorkspace({ resource }) {
 
         {showForm && <form onSubmit={handleSubmit} className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:grid-cols-2">
           {resource === 'subjects' && <datalist id="subject-code-options">{records.map((subject) => <option key={subject._id} value={subject.code} />)}</datalist>}
-          {config.fields.map(([key, label, type]) => <label key={key} className="text-sm font-semibold text-slate-700 dark:text-slate-200">{label}{resource === 'subjects' && key === 'faculty' ? <select required value={form[key] || ''} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-800"><option value="">Select faculty</option>{faculty.map((item) => <option key={item._id} value={item._id}>{item.employeeId} - {item.userId?.name || 'Unnamed faculty'}</option>)}</select> : (resource === 'students' || resource === 'faculty' || resource === 'courses') && key === 'department' ? <select required value={form[key] || ''} onChange={(event) => setForm({ ...form, [key]: event.target.value, ...(resource === 'students' ? { course: '' } : {}) })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-800"><option value="">Select department</option>{departments.map((department) => <option key={department._id} value={department._id}>{department.code} - {department.name}</option>)}</select> : (resource === 'students' || resource === 'subjects') && key === 'course' ? <select required value={form[key] || ''} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-800"><option value="">Select course</option>{courses.filter((course) => resource !== 'students' || !form.department || String(course.department?._id || course.department) === String(form.department)).map((course) => <option key={course._id} value={course._id}>{course.code} - {course.name}</option>)}</select> : <input list={resource === 'subjects' && key === 'code' ? 'subject-code-options' : undefined} required={key !== 'password' && !['description', 'phone', 'assignedFaculty'].includes(key) || key === 'password' && !editingId} type={type} value={form[key] || ''} onChange={(event) => setForm({ ...form, [key]: type === 'number' ? Number(event.target.value) : event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-transparent px-3 py-2 font-normal outline-none focus:border-cyan-500 dark:border-slate-700" />}</label>)}
+          {config.fields.map(([key, label, type]) => <label key={key} className="text-sm font-semibold text-slate-700 dark:text-slate-200">{label}{resource === 'subjects' && key === 'faculty' ? <select required value={form[key] || ''} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-800"><option value="">Select faculty</option>{faculty.map((item) => <option key={item._id} value={item._id}>{item.employeeId} - {item.userId?.name || 'Unnamed faculty'}</option>)}</select> : resource === 'fees' && key === 'student' ? <select required value={form[key] || ''} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-800"><option value="">Select student</option>{students.map((student) => <option key={student._id} value={student._id}>{student.studentId} - {student.userId?.name || 'Unnamed student'}</option>)}</select> : (resource === 'students' || resource === 'faculty' || resource === 'courses') && key === 'department' ? <select required value={form[key] || ''} onChange={(event) => setForm({ ...form, [key]: event.target.value, ...(resource === 'students' ? { course: '' } : {}) })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-800"><option value="">Select department</option>{departments.map((department) => <option key={department._id} value={department._id}>{department.code} - {department.name}</option>)}</select> : (resource === 'students' || resource === 'subjects') && key === 'course' ? <select required value={form[key] || ''} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-800"><option value="">Select course</option>{courses.filter((course) => resource !== 'students' || !form.department || String(course.department?._id || course.department) === String(form.department)).map((course) => <option key={course._id} value={course._id}>{course.code} - {course.name}</option>)}</select> : <input list={resource === 'subjects' && key === 'code' ? 'subject-code-options' : undefined} required={key !== 'password' && !['description', 'phone', 'assignedFaculty'].includes(key) || key === 'password' && !editingId} type={type} value={form[key] || ''} onChange={(event) => setForm({ ...form, [key]: type === 'number' ? Number(event.target.value) : event.target.value })} className="mt-1 w-full rounded-lg border border-slate-300 bg-transparent px-3 py-2 font-normal outline-none focus:border-cyan-500 dark:border-slate-700" />}</label>)}
           <div className="flex items-end gap-2"><button disabled={saving} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-bold text-white disabled:opacity-50 dark:bg-cyan-400 dark:text-slate-950">{saving ? 'Saving...' : editingId ? 'Update record' : 'Save record'}</button><button type="button" onClick={closeForm} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold dark:border-slate-700">Cancel</button></div>
         </form>}
 
