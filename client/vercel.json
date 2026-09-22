@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://smart-campus-erp-674p.vercel.app/api/:path*"
+      "destination": "https://smart-campus-erp-mh34-5mvq4onvp-tejaswi7.vercel.app/api/:path*"
     },
     {
       "source": "/(.*)",
