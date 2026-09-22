@@ -1,6 +1,7 @@
 const Result = require('../models/Result');
 const Student = require('../models/Student');
 const Faculty = require('../models/Faculty');
+const Examination = require('../models/Examination');
 
 const calculateGrade = (marks, maxMarks) => {
   const percentage = (marks / maxMarks) * 100;
@@ -113,9 +114,16 @@ exports.createResult = async (req, res, next) => {
 
 exports.bulkUpsertResults = async (req, res, next) => {
   try {
-    const { examination, subject, semester, rows } = req.body;
+    const { examination, subject, semester, rows, totalMarks } = req.body;
     if (!examination || !subject || !Array.isArray(rows) || rows.length === 0) {
       return res.status(422).json({ success: false, message: 'Examination, subject, and at least one mark row are required' });
+    }
+
+    const exam = await Examination.findById(examination).select('totalMarks');
+    if (!exam) return res.status(404).json({ success: false, message: 'Examination not found' });
+    const examTotalMarks = Number(totalMarks || exam.totalMarks || 100);
+    if (!Number.isFinite(examTotalMarks) || examTotalMarks <= 0) {
+      return res.status(422).json({ success: false, message: 'The examination total marks must be greater than zero' });
     }
 
     const studentIds = rows.map((row) => String(row.studentId || '').trim()).filter(Boolean);
@@ -128,26 +136,31 @@ exports.bulkUpsertResults = async (req, res, next) => {
     const studentsById = new Map(students.map((student) => [student.studentId, student]));
     const errors = [];
     const operations = [];
+    const validMarks = [];
 
     rows.forEach((row, index) => {
       const studentId = String(row.studentId || '').trim();
       const student = studentsById.get(studentId);
       const marks = Number(row.marks);
-      const maxMarks = Number(row.maxMarks || 100);
+      const maxMarks = examTotalMarks;
       if (!student) errors.push(`Row ${index + 2}: student ${studentId || '(missing ID)'} was not found for the selected semester`);
       else if (!Number.isFinite(marks) || marks < 0 || marks > maxMarks) errors.push(`Row ${index + 2}: marks must be between 0 and max marks`);
-      else operations.push({
-        updateOne: {
-          filter: { student: student._id, subject, examination },
-          update: { $set: { student: student._id, subject, examination, marks, maxMarks, remarks: row.remarks || '', grade: calculateGrade(marks, maxMarks) } },
-          upsert: true,
-        },
-      });
+      else {
+        validMarks.push(marks);
+        operations.push({
+          updateOne: {
+            filter: { student: student._id, subject, examination },
+            update: { $set: { student: student._id, subject, examination, marks, maxMarks, remarks: row.remarks || '', grade: calculateGrade(marks, maxMarks) } },
+            upsert: true,
+          },
+        });
+      }
     });
 
     if (errors.length > 0) return res.status(422).json({ success: false, message: 'Spreadsheet validation failed', errors });
     const result = await Result.bulkWrite(operations);
-    res.status(200).json({ success: true, message: `${operations.length} result(s) uploaded successfully`, data: { processed: operations.length, inserted: result.upsertedCount, updated: result.modifiedCount } });
+    const averageMarks = validMarks.reduce((sum, marks) => sum + marks, 0) / validMarks.length;
+    res.status(200).json({ success: true, message: `${operations.length} result(s) uploaded successfully`, data: { processed: operations.length, inserted: result.upsertedCount, updated: result.modifiedCount, totalMarks: examTotalMarks, averageMarks: Number(averageMarks.toFixed(2)) } });
   } catch (error) {
     next(error);
   }

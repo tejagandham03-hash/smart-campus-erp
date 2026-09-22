@@ -18,6 +18,7 @@ const FacultyExaminations = () => {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [uploadSummary, setUploadSummary] = useState(null);
 
   useEffect(() => {
     Promise.all([API.get('/examinations?limit=500'), API.get('/subjects'), API.get('/courses?status=active')])
@@ -57,11 +58,13 @@ const FacultyExaminations = () => {
   };
 
   const downloadTemplate = () => {
+    const selectedExam = examinations.find((exam) => exam._id === selection.examination);
+    const totalMarks = selectedExam?.totalMarks || 100;
     const rows = students.map((student) => ({
       'Student ID': student.studentId,
       'Student Name': student.userId?.name || '',
       Marks: '',
-      'Max Marks': 100,
+      'Max Marks': totalMarks,
       Remarks: '',
     }));
     const worksheet = XLSX.utils.json_to_sheet(rows.length ? rows : [Object.fromEntries(templateHeaders.map((header) => [header, '']))]);
@@ -84,11 +87,12 @@ const FacultyExaminations = () => {
       const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' }).map((row) => ({
         studentId: row['Student ID'] || row.studentId,
         marks: row.Marks ?? row.marks,
-        maxMarks: row['Max Marks'] || row.maxMarks || 100,
         remarks: row.Remarks || row.remarks || '',
       }));
-      const response = await API.post('/results/bulk', { ...selection, rows });
+      const selectedExam = examinations.find((exam) => exam._id === selection.examination);
+      const response = await API.post('/results/bulk', { ...selection, totalMarks: selectedExam?.totalMarks, rows });
       setMessage(response.data?.message || 'Marks uploaded successfully.');
+      setUploadSummary(response.data?.data || null);
       setFile(null);
       event.target.reset();
     } catch (error) {
@@ -125,6 +129,10 @@ const FacultyExaminations = () => {
               </select>
             </label>
           </div>
+          {selection.examination && (() => {
+            const selectedExam = examinations.find((exam) => exam._id === selection.examination);
+            return <p className="mt-4 text-sm font-semibold text-violet-800 dark:text-violet-200">Total marks for this examination: {selectedExam?.totalMarks || 100}</p>;
+          })()}
           <div className="mt-5 flex flex-wrap gap-3">
             <button type="button" onClick={downloadTemplate} className="inline-flex items-center gap-2 rounded-lg border border-violet-300 bg-white px-4 py-2 text-sm font-bold text-violet-700 hover:bg-violet-100 dark:border-violet-800 dark:bg-slate-900 dark:text-violet-300"><Download className="h-4 w-4" /> Download Excel template</button>
             <form onSubmit={uploadMarks} className="flex flex-wrap items-center gap-3">
@@ -133,6 +141,7 @@ const FacultyExaminations = () => {
             </form>
           </div>
           {message && <p className="mt-4 text-sm font-semibold text-slate-700 dark:text-slate-200">{message}</p>}
+          {uploadSummary && <p className="mt-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">Average marks scored: {uploadSummary.averageMarks} / {uploadSummary.totalMarks}</p>}
         </section>
         <form onSubmit={createExamination} className="grid gap-4 rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 sm:grid-cols-2">
           <h2 className="sm:col-span-2 text-lg font-bold">Create examination</h2>
